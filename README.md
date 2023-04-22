@@ -5,4 +5,4 @@ I followed these links to create the template.
 [https://blog.logrocket.com/creating-game-three-js/](https://blog.logrocket.com/creating-game-three-js/)
 [https://sbcode.net/threejs/threejs-typescript-boilerplate/](https://sbcode.net/threejs/threejs-typescript-boilerplate/)
 
-Play the template game [here](https://www.aaroncollins.info/WebGame/)
+Play the template game [here](https://www.aaroncollins.info/2dWebGame/)
