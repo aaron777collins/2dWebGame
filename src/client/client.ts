@@ -379,7 +379,7 @@ function updateCharacter() {
 // Background-related logic
 function createBackground() {
     const textureLoader = new THREE.TextureLoader()
-    const backgroundTexture = textureLoader.load('/static/background.jpg')
+    const backgroundTexture = textureLoader.load('static/background.jpg')
     const backgroundMaterial = new THREE.SpriteMaterial({ map: backgroundTexture, color: 0xffffff })
 
     const background = new THREE.Sprite(backgroundMaterial)
@@ -426,7 +426,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const textureLoader = new THREE.TextureLoader()
     const atlasTexture = textureLoader.load(
-        '/static/character.png',
+        'static/character.png',
         (texture) => {
             //callback
             const characterData = createCharacter(
