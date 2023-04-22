@@ -189,13 +189,13 @@ function updateAnimation() {
         const realEndFrame = anim.endFrame
 
         const currentFrame =
-            ((realStartFrame + Math.floor(animationData.animationElapsedTime / animationData.animationDuration)) %
+            ((realStartFrame + Math.floor(animationData.animationElapsedTime / animationData.animationDuration) - 1) %
             (realEndFrame - realStartFrame + 1))
 
-        if (currentFrame > realEndFrame) {
-            animationData.currentAnimation = 'idle'
-            character.attacking = false
-        }
+        // if (currentFrame > realEndFrame) {
+        //     animationData.currentAnimation = 'idle'
+        //     character.attacking = false
+        // }
         console.log(currentFrame)
         const frameOffsetForFlip = animationData.firstFlipID
         const flipOffset = character.flipped ? frameOffsetForFlip : 0
