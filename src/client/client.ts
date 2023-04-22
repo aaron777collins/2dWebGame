@@ -66,6 +66,8 @@ const enum DIRECTIONS {
     back = 'back',
 }
 
+type timeouttype = ReturnType<typeof setTimeout>
+
 // frames go from right to left
 const animationData = {
     idle: {
@@ -120,19 +122,20 @@ const animationData = {
     },
     mostRecentDirection: DIRECTIONS.normal,
     // Add more animations here
-    firstFlipID: 0, // default value
 
     currentAnimation: 'idle',
     previousAnimation: '',
     animationElapsedTime: 0,
-    animationDuration: 1000, // In milliseconds
+    animationDuration: 100, // In milliseconds
     animationTimeOffset: 0,
+    x_tiles: 6,
+    y_tiles: 10,
 }
 
-function createTextureAtlasGrid(atlasTexture, tilesHoriz, tilesVert, flipped=false) {
+function createTextureAtlasGrid(atlasTexture, tilesHoriz, tilesVert, flipped = false) {
     const textures: THREE.Texture[] = []
     for (let i = 0; i < tilesVert; i++) {
-        for (let j = tilesHoriz-1; j >= 0; j--) {
+        for (let j = tilesHoriz - 1; j >= 0; j--) {
             const tileTexture = atlasTexture.clone()
             tileTexture.needsUpdate = true
             tileTexture.repeat.set(1 / tilesHoriz, 1 / tilesVert)
@@ -145,18 +148,14 @@ function createTextureAtlasGrid(atlasTexture, tilesHoriz, tilesVert, flipped=fal
 
 function createCharacter(textureAtlas: THREE.Texture, tilesHoriz = 1, tilesVert = 1) {
     const textures = createTextureAtlasGrid(textureAtlas, tilesHoriz, tilesVert).reverse()
-    const flippedatlas = textureAtlas.clone()
-    const flippedTextures = createTextureAtlasGrid(flippedatlas, tilesHoriz, tilesVert, true).reverse()
-    flippedTextures.forEach((texture) => {
-        // Flip the texture horizontally
+
+    textures.forEach((texture) => {
+        // repeat mirror
         texture.wrapS = THREE.RepeatWrapping
-        texture.repeat.x = texture.repeat.x * -1
     })
 
-    const combinedTextures = textures.concat(flippedTextures)
-
     const spriteMaterial = new THREE.SpriteMaterial({
-        map: combinedTextures[0],
+        map: textures[0],
         color: 0xffffff,
     })
     spriteMaterial.side = THREE.DoubleSide
@@ -166,41 +165,66 @@ function createCharacter(textureAtlas: THREE.Texture, tilesHoriz = 1, tilesVert 
     sprite.scale.set(100, 100, 1)
     scene.add(sprite)
 
-    animationData.firstFlipID = Math.floor(combinedTextures.length / 2)
-
-    return { sprite: sprite, textures: combinedTextures }
+    return { sprite: sprite, textures: textures }
 }
 
 function updateAnimation() {
     if (animationData.previousAnimation !== animationData.currentAnimation) {
-        console.log("Reset")
-        animationData.animationTimeOffset = -stats.domElement.ownerDocument.defaultView.performance.now()
+        // console.log('Reset')
+        animationData.animationTimeOffset =
+            -stats.domElement.ownerDocument.defaultView.performance.now()
     }
 
     animationData.previousAnimation = animationData.currentAnimation
     const anim = animationData[animationData.currentAnimation]
     if (!anim) return
 
-    animationData.animationElapsedTime += animationData.animationTimeOffset + stats.domElement.ownerDocument.defaultView.performance.now()
+    animationData.animationElapsedTime +=
+        animationData.animationTimeOffset +
+        stats.domElement.ownerDocument.defaultView.performance.now()
 
     if (animationData.animationElapsedTime >= animationData.animationDuration) {
         // regular adds framesMissing to startFrame but flipped does not
-        const realStartFrame = anim.startFrame + anim.framesMissing
+        const realStartFrame = anim.startFrame
         const realEndFrame = anim.endFrame
 
         const currentFrame =
-            ((realStartFrame + Math.floor(animationData.animationElapsedTime / animationData.animationDuration) - 1) %
-            (realEndFrame - realStartFrame + 1))
+            (realStartFrame +
+                Math.floor(animationData.animationElapsedTime / animationData.animationDuration) -
+                1) %
+            (realEndFrame - realStartFrame + 1)
 
-        // if (currentFrame > realEndFrame) {
-        //     animationData.currentAnimation = 'idle'
-        //     character.attacking = false
-        // }
-        console.log(currentFrame)
-        const frameOffsetForFlip = animationData.firstFlipID
-        const flipOffset = character.flipped ? frameOffsetForFlip : 0
-        character.sprite.material.map =
-            character.textures[flipOffset + realStartFrame + currentFrame]
+        if (
+            currentFrame >= realEndFrame - realStartFrame + 1 - anim.framesMissing
+        ) {
+            character.attacking = false
+            if (animationData.mostRecentDirection === DIRECTIONS.right) {
+                animationData.currentAnimation = 'idleRight'
+            } else if (animationData.mostRecentDirection === DIRECTIONS.back) {
+                animationData.currentAnimation = 'idleBack'
+            } else {
+                animationData.currentAnimation = 'idle'
+            }
+            updateAnimation()
+            return
+        }
+
+        // rotating sprite to face the other direction if flipped
+        if (character.flipped) {
+            character.sprite.material.map = character.textures[realEndFrame - currentFrame]
+            character.sprite.material.map.offset.x =
+                Math.abs(character.sprite.material.map.offset.x) * -1
+            character.sprite.material.map.repeat.x =
+                Math.abs(character.sprite.material.map.repeat.x) * -1
+        } else {
+            character.sprite.material.map = character.textures[realStartFrame + currentFrame]
+            character.sprite.material.map.offset.x = Math.abs(
+                character.sprite.material.map.offset.x
+            )
+            character.sprite.material.map.repeat.x = Math.abs(
+                character.sprite.material.map.repeat.x
+            )
+        }
         character.sprite.material.needsUpdate = true
         animationData.animationElapsedTime = 0
     }
@@ -302,10 +326,7 @@ function updateCharacter() {
             character.attacking = true
             character.velocity.x /= 2
             character.velocity.y /= 2
-            // timeout for the frames of the attack animation
-            setTimeout(() => {
-                character.attacking = false
-            }, (animationData[animationData.currentAnimation].endFrame - animationData[animationData.currentAnimation].startFrame) * animationData.animationDuration)
+
             // attack
             if (animationData.mostRecentDirection === DIRECTIONS.normal) {
                 animationData.currentAnimation = 'attack'
@@ -358,7 +379,7 @@ function updateCharacter() {
 // Background-related logic
 function createBackground() {
     const textureLoader = new THREE.TextureLoader()
-    const backgroundTexture = textureLoader.load('../../static/background.jpg')
+    const backgroundTexture = textureLoader.load('/static/background.jpg')
     const backgroundMaterial = new THREE.SpriteMaterial({ map: backgroundTexture, color: 0xffffff })
 
     const background = new THREE.Sprite(backgroundMaterial)
@@ -368,7 +389,34 @@ function createBackground() {
     scene.add(background)
 }
 
+function removeHelpText() {
+    document.getElementById('help-text').style.display = 'none';
+    window.removeEventListener('keydown', removeHelpText)
+}
+
+function addHelpText() {
+    // help text will disappear after 5 seconds and will also dissapear after pressing any key
+    const helpText = document.createElement('div')
+    helpText.innerHTML = 'Use the arrow keys to move and space to attack'
+    helpText.style.position = 'absolute'
+    helpText.style.top = '10px'
+    helpText.style.left = '10px'
+    helpText.style.color = 'white'
+    helpText.style.fontSize = '20px'
+    helpText.style.fontFamily = 'sans-serif'
+    helpText.style.zIndex = '1'
+    helpText.id = 'help-text'
+    document.body.appendChild(helpText)
+
+    window.addEventListener('keydown', removeHelpText)
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+
+    // add help text
+    addHelpText()
+
+
     // add stats
     document.body.appendChild(stats.dom)
     stats.showPanel(0)
@@ -377,10 +425,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const textureLoader = new THREE.TextureLoader()
     const atlasTexture = textureLoader.load(
-        '../../static/character.png',
+        '/static/character.png',
         (texture) => {
             //callback
-            const characterData = createCharacter(atlasTexture, 6, 10) // Assuming a 6x10 grid
+            const characterData = createCharacter(
+                atlasTexture,
+                animationData.x_tiles,
+                animationData.y_tiles
+            ) // Assuming a 6x10 grid
             character.sprite = characterData.sprite
             character.textures = characterData.textures
 
