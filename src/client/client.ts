@@ -395,12 +395,13 @@ function removeHelpText() {
 }
 
 function addHelpText() {
-    // help text will disappear after 5 seconds and will also dissapear after pressing any key
+    // centered help text will disappear after 5 seconds and will also dissapear after pressing any key
     const helpText = document.createElement('div')
     helpText.innerHTML = 'Use the arrow keys to move and space to attack'
     helpText.style.position = 'absolute'
-    helpText.style.top = '10px'
-    helpText.style.left = '10px'
+    helpText.style.top = '50%'
+    helpText.style.left = '50%'
+    helpText.style.transform = 'translate(-50%, -50%)'
     helpText.style.color = 'white'
     helpText.style.fontSize = '20px'
     helpText.style.fontFamily = 'sans-serif'
