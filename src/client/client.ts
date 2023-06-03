@@ -1,9 +1,14 @@
 import * as THREE from 'three'
 import Stats from 'stats.js'
 
+import { characterAnimationData, CharacterAnimation, DIRECTIONS } from './Animation/CharacterAnimation'
+import { Character } from '../models/Character';
+import { createTextureAtlasGrid } from './Texture/Texture';
+
 let delta = 0;
 let oldTimeStamp = 0;
 let maxFPS = 120;
+let animation;
 
 const scene = new THREE.Scene()
 
@@ -58,7 +63,7 @@ function update(delta) {
 }
 
 function render() {
-    updateAnimation()
+    animation.updateAnimations()
     renderer.render(scene, camera)
 }
 
@@ -74,93 +79,9 @@ const character = {
     textures: [],
     attacking: false,
     slowDownCoefficientOnAttack: 0.1,
-}
-
-const enum DIRECTIONS {
-    normal = 'normal',
-    right = 'right',
-    back = 'back',
-}
+} as Character
 
 type timeouttype = ReturnType<typeof setTimeout>
-
-// frames go from right to left
-const animationData = {
-    idle: {
-        startFrame: 0,
-        endFrame: 5,
-        framesMissing: 0,
-    },
-    idleRight: {
-        startFrame: 6,
-        endFrame: 11,
-        framesMissing: 0,
-    },
-    idleBack: {
-        startFrame: 12,
-        endFrame: 17,
-        framesMissing: 0,
-    },
-    walk: {
-        startFrame: 18,
-        endFrame: 23,
-        framesMissing: 0,
-    },
-    walkRight: {
-        startFrame: 24,
-        endFrame: 29,
-        framesMissing: 0,
-    },
-    walkBack: {
-        startFrame: 30,
-        endFrame: 35,
-        framesMissing: 0,
-    },
-    attack: {
-        startFrame: 36,
-        endFrame: 41,
-        framesMissing: 2,
-    },
-    attackRight: {
-        startFrame: 42,
-        endFrame: 47,
-        framesMissing: 2,
-    },
-    attackBack: {
-        startFrame: 48,
-        endFrame: 53,
-        framesMissing: 2,
-    },
-    die: {
-        startFrame: 54,
-        endFrame: 59,
-        framesMissing: 3,
-    },
-    mostRecentDirection: DIRECTIONS.normal,
-    // Add more animations here
-
-    currentAnimation: 'idle',
-    previousAnimation: '',
-    animationElapsedTime: 0,
-    animationDuration: 100, // In milliseconds
-    animationTimeOffset: 0,
-    x_tiles: 6,
-    y_tiles: 10,
-}
-
-function createTextureAtlasGrid(atlasTexture, tilesHoriz, tilesVert, flipped = false) {
-    const textures: THREE.Texture[] = []
-    for (let i = 0; i < tilesVert; i++) {
-        for (let j = tilesHoriz - 1; j >= 0; j--) {
-            const tileTexture = atlasTexture.clone()
-            tileTexture.needsUpdate = true
-            tileTexture.repeat.set(1 / tilesHoriz, 1 / tilesVert)
-            tileTexture.offset.set(j / tilesHoriz, i / tilesVert)
-            textures.push(tileTexture)
-        }
-    }
-    return textures
-}
 
 function createCharacter(textureAtlas: THREE.Texture, tilesHoriz = 1, tilesVert = 1) {
     const textures = createTextureAtlasGrid(textureAtlas, tilesHoriz, tilesVert).reverse()
@@ -182,68 +103,6 @@ function createCharacter(textureAtlas: THREE.Texture, tilesHoriz = 1, tilesVert 
     scene.add(sprite)
 
     return { sprite: sprite, textures: textures }
-}
-
-function updateAnimation() {
-    if (animationData.previousAnimation !== animationData.currentAnimation) {
-        // console.log('Reset')
-        animationData.animationTimeOffset =
-            -stats.domElement.ownerDocument.defaultView.performance.now()
-    }
-
-    animationData.previousAnimation = animationData.currentAnimation
-    const anim = animationData[animationData.currentAnimation]
-    if (!anim) return
-
-    animationData.animationElapsedTime +=
-        animationData.animationTimeOffset +
-        stats.domElement.ownerDocument.defaultView.performance.now()
-
-    if (animationData.animationElapsedTime >= animationData.animationDuration) {
-        // regular adds framesMissing to startFrame but flipped does not
-        const realStartFrame = anim.startFrame
-        const realEndFrame = anim.endFrame
-
-        const currentFrame =
-            (realStartFrame +
-                Math.floor(animationData.animationElapsedTime / animationData.animationDuration) -
-                1) %
-            (realEndFrame - realStartFrame + 1)
-
-        if (
-            currentFrame >= realEndFrame - realStartFrame + 1 - anim.framesMissing
-        ) {
-            character.attacking = false
-            if (animationData.mostRecentDirection === DIRECTIONS.right) {
-                animationData.currentAnimation = 'idleRight'
-            } else if (animationData.mostRecentDirection === DIRECTIONS.back) {
-                animationData.currentAnimation = 'idleBack'
-            } else {
-                animationData.currentAnimation = 'idle'
-            }
-            updateAnimation()
-            return
-        }
-
-        // rotating sprite to face the other direction if flipped
-        if (character.flipped) {
-            character.sprite.material.map = character.textures[realEndFrame - currentFrame]
-            character.sprite.material.map.offset.x =
-                Math.abs(character.sprite.material.map.offset.x) * -1
-            character.sprite.material.map.repeat.x =
-                Math.abs(character.sprite.material.map.repeat.x) * -1
-        } else {
-            character.sprite.material.map = character.textures[realStartFrame + currentFrame]
-            character.sprite.material.map.offset.x = Math.abs(
-                character.sprite.material.map.offset.x
-            )
-            character.sprite.material.map.repeat.x = Math.abs(
-                character.sprite.material.map.repeat.x
-            )
-        }
-        character.sprite.material.needsUpdate = true
-        animationData.animationElapsedTime = 0
-    }
 }
 
 const KEY_STATES = {
@@ -323,21 +182,21 @@ function updateCharacter(delta) {
 
         if (KEY_STATES.LEFT) {
             character.velocity.x = -characterSpeedWithDelta
-            animationData.currentAnimation = 'walkRight'
-            animationData.mostRecentDirection = DIRECTIONS.right
+            characterAnimationData.currentAnimation = 'walkRight'
+            characterAnimationData.mostRecentDirection = DIRECTIONS.right
         } else if (KEY_STATES.RIGHT) {
             character.velocity.x = characterSpeedWithDelta
-            animationData.currentAnimation = 'walkRight'
-            animationData.mostRecentDirection = DIRECTIONS.right
+            characterAnimationData.currentAnimation = 'walkRight'
+            characterAnimationData.mostRecentDirection = DIRECTIONS.right
         }
         if (KEY_STATES.UP) {
             character.velocity.y = characterSpeedWithDelta
-            animationData.currentAnimation = 'walkBack'
-            animationData.mostRecentDirection = DIRECTIONS.back
+            characterAnimationData.currentAnimation = 'walkBack'
+            characterAnimationData.mostRecentDirection = DIRECTIONS.back
         } else if (KEY_STATES.DOWN) {
             character.velocity.y = -characterSpeedWithDelta
-            animationData.currentAnimation = 'walk'
-            animationData.mostRecentDirection = DIRECTIONS.normal
+            characterAnimationData.currentAnimation = 'walk'
+            characterAnimationData.mostRecentDirection = DIRECTIONS.normal
         }
 
         if (KEY_STATES.SPACE && !character.attacking) {
@@ -347,15 +206,15 @@ function updateCharacter(delta) {
             character.velocity.y /= character.slowDownCoefficientOnAttack * (1+delta)
 
             // attack
-            if (animationData.mostRecentDirection === DIRECTIONS.normal) {
-                animationData.currentAnimation = 'attack'
-            } else if (animationData.mostRecentDirection === DIRECTIONS.back) {
-                animationData.currentAnimation = 'attackBack'
-            } else if (animationData.mostRecentDirection === DIRECTIONS.right) {
-                animationData.currentAnimation = 'attackRight'
+            if (characterAnimationData.mostRecentDirection === DIRECTIONS.normal) {
+                characterAnimationData.currentAnimation = 'attack'
+            } else if (characterAnimationData.mostRecentDirection === DIRECTIONS.back) {
+                characterAnimationData.currentAnimation = 'attackBack'
+            } else if (characterAnimationData.mostRecentDirection === DIRECTIONS.right) {
+                characterAnimationData.currentAnimation = 'attackRight'
             } else {
                 // should not be reached
-                animationData.currentAnimation = 'attack'
+                characterAnimationData.currentAnimation = 'attack'
             }
         }
     }
@@ -379,15 +238,15 @@ function updateCharacter(delta) {
         }
     })
     if (!animating && character.velocity.x === 0 && character.velocity.y === 0) {
-        if (animationData.mostRecentDirection === DIRECTIONS.normal) {
-            animationData.currentAnimation = 'idle'
-        } else if (animationData.mostRecentDirection === DIRECTIONS.back) {
-            animationData.currentAnimation = 'idleBack'
-        } else if (animationData.mostRecentDirection === DIRECTIONS.right) {
-            animationData.currentAnimation = 'idleRight'
+        if (characterAnimationData.mostRecentDirection === DIRECTIONS.normal) {
+            characterAnimationData.currentAnimation = 'idle'
+        } else if (characterAnimationData.mostRecentDirection === DIRECTIONS.back) {
+            characterAnimationData.currentAnimation = 'idleBack'
+        } else if (characterAnimationData.mostRecentDirection === DIRECTIONS.right) {
+            characterAnimationData.currentAnimation = 'idleRight'
         } else {
             // should not be reached
-            animationData.currentAnimation = 'idle'
+            characterAnimationData.currentAnimation = 'idle'
         }
     }
 
@@ -451,8 +310,8 @@ window.addEventListener('DOMContentLoaded', () => {
             //callback
             const characterData = createCharacter(
                 atlasTexture,
-                animationData.x_tiles,
-                animationData.y_tiles
+                characterAnimationData.x_tiles,
+                characterAnimationData.y_tiles
             ) // Assuming a 6x10 grid
             character.sprite = characterData.sprite
             character.textures = characterData.textures
@@ -460,6 +319,9 @@ window.addEventListener('DOMContentLoaded', () => {
             // Add event listeners for keyboard controls
             window.addEventListener('keydown', handleKeyDown)
             window.addEventListener('keyup', handleKeyUp)
+
+            // create Animation object
+            animation = new CharacterAnimation(stats, character)
 
             // Your help text and stats code remains the same
             window.requestAnimationFrame(gameLoop)
