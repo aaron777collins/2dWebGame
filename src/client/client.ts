@@ -1,6 +1,10 @@
 import * as THREE from 'three'
 import Stats from 'stats.js'
 
+let delta = 0;
+let oldTimeStamp = 0;
+let maxFPS = 120;
+
 const scene = new THREE.Scene()
 
 const camera = new THREE.OrthographicCamera(
@@ -30,16 +34,27 @@ function onWindowResize() {
     render()
 }
 
-function animate() {
+function gameLoop(timeStamp) {
+
+    // Calculate how much time has passed
+    delta = (timeStamp - oldTimeStamp) / 1000;
+
+    if (timeStamp < oldTimeStamp + (1000 / maxFPS)) {
+        update(delta)
+        window.requestAnimationFrame(gameLoop)
+        return;
+    }
+    oldTimeStamp = timeStamp;
+
     stats.begin()
-    update()
     render()
     stats.end()
-    requestAnimationFrame(animate)
+
+    window.requestAnimationFrame(gameLoop)
 }
 
-function update() {
-    updateCharacter()
+function update(delta) {
+    updateCharacter(delta)
 }
 
 function render() {
@@ -54,10 +69,11 @@ const character = {
     sprite: null,
     flipped: false,
     velocity: new THREE.Vector2(0, 0),
-    speed: 3,
-    speedFrictionRatio: 0.9,
+    speed: 100,
+    speedFrictionRatio: 0.90,
     textures: [],
     attacking: false,
+    slowDownCoefficientOnAttack: 0.1,
 }
 
 const enum DIRECTIONS {
@@ -299,33 +315,36 @@ function isFlipped() {
     return flipped
 }
 
-function updateCharacter() {
+function updateCharacter(delta) {
     if (!character.attacking) {
         character.flipped = isFlipped()
 
+        let characterSpeedWithDelta = character.speed * delta
+
         if (KEY_STATES.LEFT) {
-            character.velocity.x = -character.speed
+            character.velocity.x = -characterSpeedWithDelta
             animationData.currentAnimation = 'walkRight'
             animationData.mostRecentDirection = DIRECTIONS.right
         } else if (KEY_STATES.RIGHT) {
-            character.velocity.x = character.speed
+            character.velocity.x = characterSpeedWithDelta
             animationData.currentAnimation = 'walkRight'
             animationData.mostRecentDirection = DIRECTIONS.right
         }
         if (KEY_STATES.UP) {
-            character.velocity.y = character.speed
+            character.velocity.y = characterSpeedWithDelta
             animationData.currentAnimation = 'walkBack'
             animationData.mostRecentDirection = DIRECTIONS.back
         } else if (KEY_STATES.DOWN) {
-            character.velocity.y = -character.speed
+            character.velocity.y = -characterSpeedWithDelta
             animationData.currentAnimation = 'walk'
             animationData.mostRecentDirection = DIRECTIONS.normal
         }
 
         if (KEY_STATES.SPACE && !character.attacking) {
             character.attacking = true
-            character.velocity.x /= 2
-            character.velocity.y /= 2
+            console.log(2 * delta)
+            character.velocity.x /= character.slowDownCoefficientOnAttack * (1+delta)
+            character.velocity.y /= character.slowDownCoefficientOnAttack * (1+delta)
 
             // attack
             if (animationData.mostRecentDirection === DIRECTIONS.normal) {
@@ -341,13 +360,14 @@ function updateCharacter() {
         }
     }
 
-    character.velocity.x *= character.speedFrictionRatio
-    if (Math.abs(character.velocity.x) < 0.1) {
+    character.velocity.x *= character.speedFrictionRatio * (1-delta)
+    if (Math.abs(character.velocity.x) < 0.01*delta) {
         character.velocity.x = 0
     }
 
-    character.velocity.y *= character.speedFrictionRatio
-    if (Math.abs(character.velocity.y) < 0.1) {
+
+    character.velocity.y *= character.speedFrictionRatio * (1-delta)
+    if (Math.abs(character.velocity.y) < 0.01*delta) {
         character.velocity.y = 0
     }
 
@@ -442,7 +462,7 @@ window.addEventListener('DOMContentLoaded', () => {
             window.addEventListener('keyup', handleKeyUp)
 
             // Your help text and stats code remains the same
-            animate()
+            window.requestAnimationFrame(gameLoop)
         },
         (event) => {
             // onProgress
