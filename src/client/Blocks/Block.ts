@@ -1,14 +1,25 @@
 import { BlockAnimation } from "../Animation/BlockAnimation";
 import { BlockType } from "./BlockType";
 
-class Block {
-    // A block will have an BlockAnimation, a BlockType and a BlockTexture
+export class Block {
+    // A block will have an BlockAnimation, a BlockType, a BlockTexture and a Textures array
 
     blockAnimation: BlockAnimation;
     blockType: BlockType;
+    blockTexture: THREE.Texture; // Assuming you're using THREE.js for your WebGL rendering
+    textures: THREE.Texture[];
+    sprite: THREE.Sprite;
 
-    constructor(blockAnimation, blockType, blockTexture) {
+    constructor(blockAnimation: BlockAnimation, blockType: BlockType) {
         this.blockAnimation = blockAnimation;
         this.blockType = blockType;
+    }
+
+    setSprite(sprite: THREE.Sprite) {
+        this.sprite = sprite;
+    }
+
+    updateBlock() {
+        this.blockAnimation.updateAnimation(this.sprite);
     }
 }

@@ -1,9 +1,3 @@
-export class Texture {
-
-
-
-}
-
 export function createTextureAtlasGrid(atlasTexture, tilesHoriz, tilesVert, flipped = false) {
     const textures: THREE.Texture[] = []
     for (let i = 0; i < tilesVert; i++) {

@@ -24,6 +24,7 @@
   "scripts": {
     "start": "webpack serve --config ./webpack.dev.js",
     "build": "webpack --config ./webpack.prod.js",
-    "deploy": "npm run build && gh-pages -d dist"
+    "cleandist": "rimraf dist",
+    "deploy": "npm run cleandist && npm run build && gh-pages -d dist"
   }
 }

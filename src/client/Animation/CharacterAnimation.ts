@@ -1,4 +1,5 @@
 import { Character } from "../../models/Character";
+import { stats } from "../client";
 
 // frames go from right to left
 export const characterAnimationData = {
@@ -91,24 +92,21 @@ export const enum DIRECTIONS {
 
 export class CharacterAnimation {
 
-    stats: any;
     character: Character;
 
-    constructor(stats: any, character: Character) {
-        this.stats = stats;
+    constructor(character: Character) {
         this.character = character;
     }
 
     updateAnimations() {
         this.updateCharacterAnimation();
-        this.updateBlockAnimation();
     }
 
     updateCharacterAnimation() {
         if (characterAnimationData.previousAnimation !== characterAnimationData.currentAnimation) {
             // console.log('Reset')
             characterAnimationData.animationTimeOffset =
-                -this.stats.domElement.ownerDocument.defaultView.performance.now()
+                -stats.domElement.ownerDocument.defaultView.performance.now()
         }
 
         characterAnimationData.previousAnimation = characterAnimationData.currentAnimation
@@ -117,7 +115,7 @@ export class CharacterAnimation {
 
         characterAnimationData.animationElapsedTime +=
             characterAnimationData.animationTimeOffset +
-            this.stats.domElement.ownerDocument.defaultView.performance.now()
+            stats.domElement.ownerDocument.defaultView.performance.now()
 
         if (characterAnimationData.animationElapsedTime >= characterAnimationData.animationDuration) {
             // regular adds framesMissing to startFrame but flipped does not
@@ -166,66 +164,5 @@ export class CharacterAnimation {
         }
     }
 
-    updateBlockAnimation() {
-        // if (characterAnimationData.previousAnimation !== characterAnimationData.currentAnimation) {
-        //     // console.log('Reset')
-        //     characterAnimationData.animationTimeOffset =
-        //         -this.stats.domElement.ownerDocument.defaultView.performance.now()
-        // }
-
-        // characterAnimationData.previousAnimation = characterAnimationData.currentAnimation
-        // const anim = characterAnimationData[characterAnimationData.currentAnimation]
-        // if (!anim) return
-
-        // characterAnimationData.animationElapsedTime +=
-        //     characterAnimationData.animationTimeOffset +
-        //     this.stats.domElement.ownerDocument.defaultView.performance.now()
-
-        // if (characterAnimationData.animationElapsedTime >= characterAnimationData.animationDuration) {
-        //     // regular adds framesMissing to startFrame but flipped does not
-        //     const realStartFrame = anim.startFrame
-        //     const realEndFrame = anim.endFrame
-
-        //     const currentFrame =
-        //         (realStartFrame +
-        //             Math.floor(characterAnimationData.animationElapsedTime / characterAnimationData.animationDuration) -
-        //             1) %
-        //         (realEndFrame - realStartFrame + 1)
-
-        //     if (
-        //         currentFrame >= realEndFrame - realStartFrame + 1 - anim.framesMissing
-        //     ) {
-        //         this.character.attacking = false
-        //         if (characterAnimationData.mostRecentDirection === DIRECTIONS.right) {
-        //             characterAnimationData.currentAnimation = 'idleRight'
-        //         } else if (characterAnimationData.mostRecentDirection === DIRECTIONS.back) {
-        //             characterAnimationData.currentAnimation = 'idleBack'
-        //         } else {
-        //             characterAnimationData.currentAnimation = 'idle'
-        //         }
-        //         this.updateCharacterAnimation()
-        //         return
-        //     }
-
-        //     // rotating sprite to face the other direction if flipped
-        //     if (this.character.flipped) {
-        //         this.character.sprite.material.map = this.character.textures[realEndFrame - currentFrame]
-        //         this.character.sprite.material.map.offset.x =
-        //             Math.abs(this.character.sprite.material.map.offset.x) * -1
-        //         this.character.sprite.material.map.repeat.x =
-        //             Math.abs(this.character.sprite.material.map.repeat.x) * -1
-        //     } else {
-        //         this.character.sprite.material.map = this.character.textures[realStartFrame + currentFrame]
-        //         this.character.sprite.material.map.offset.x = Math.abs(
-        //             this.character.sprite.material.map.offset.x
-        //         )
-        //         this.character.sprite.material.map.repeat.x = Math.abs(
-        //             this.character.sprite.material.map.repeat.x
-        //         )
-        //     }
-        //     this.character.sprite.material.needsUpdate = true
-        //     characterAnimationData.animationElapsedTime = 0
-        // }
-    }
 }
 

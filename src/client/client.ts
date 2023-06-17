@@ -2,13 +2,16 @@ import * as THREE from 'three'
 import Stats from 'stats.js'
 
 import { characterAnimationData, CharacterAnimation, DIRECTIONS } from './Animation/CharacterAnimation'
-import { Character } from '../models/Character';
-import { createTextureAtlasGrid } from './Texture/Texture';
+import { Character, createCharacter } from '../models/Character';
+import { BlockManager } from './Blocks/BlockManager';
+import { BlockType } from './Blocks/BlockType';
 
 let delta = 0;
 let oldTimeStamp = 0;
 let maxFPS = 120;
-let animation;
+let characterAnimation;
+
+export const blockManager = new BlockManager()
 
 const scene = new THREE.Scene()
 
@@ -26,7 +29,7 @@ const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
-const stats = new Stats()
+export const stats = new Stats()
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -63,7 +66,8 @@ function update(delta) {
 }
 
 function render() {
-    animation.updateAnimations()
+    characterAnimation.updateAnimations()
+    blockManager.updateBlocks()
     renderer.render(scene, camera)
 }
 
@@ -82,28 +86,6 @@ const character = {
 } as Character
 
 type timeouttype = ReturnType<typeof setTimeout>
-
-function createCharacter(textureAtlas: THREE.Texture, tilesHoriz = 1, tilesVert = 1) {
-    const textures = createTextureAtlasGrid(textureAtlas, tilesHoriz, tilesVert).reverse()
-
-    textures.forEach((texture) => {
-        // repeat mirror
-        texture.wrapS = THREE.RepeatWrapping
-    })
-
-    const spriteMaterial = new THREE.SpriteMaterial({
-        map: textures[0],
-        color: 0xffffff,
-    })
-    spriteMaterial.side = THREE.DoubleSide
-    spriteMaterial.transparent = true
-
-    const sprite = new THREE.Sprite(spriteMaterial)
-    sprite.scale.set(100, 100, 1)
-    scene.add(sprite)
-
-    return { sprite: sprite, textures: textures }
-}
 
 const KEY_STATES = {
     UP: false,
@@ -306,10 +288,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const textureLoader = new THREE.TextureLoader()
     const atlasTexture = textureLoader.load(
         'static/character.png',
-        (texture) => {
+        async (texture) => {
             //callback
             const characterData = createCharacter(
                 atlasTexture,
+                scene,
                 characterAnimationData.x_tiles,
                 characterAnimationData.y_tiles
             ) // Assuming a 6x10 grid
@@ -321,7 +304,15 @@ window.addEventListener('DOMContentLoaded', () => {
             window.addEventListener('keyup', handleKeyUp)
 
             // create Animation object
-            animation = new CharacterAnimation(stats, character)
+            characterAnimation = new CharacterAnimation(character)
+
+            // Create blocks
+            await blockManager.createBlockAnimationMap()
+            blockManager.createBlockTypeMap()
+
+            blockManager.createBlockInstance("grass1", scene, new THREE.Vector3(-150, 0, -1))
+            blockManager.createBlockInstance("grass2", scene, new THREE.Vector3(-150, -50, -1))
+
 
             // Your help text and stats code remains the same
             window.requestAnimationFrame(gameLoop)
