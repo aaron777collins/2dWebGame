@@ -5,6 +5,7 @@ import { characterAnimationData, CharacterAnimation, DIRECTIONS } from './Animat
 import { Character, createCharacter } from '../models/Character';
 import { BlockManager } from './Blocks/BlockManager';
 import { BlockType } from './Blocks/BlockType';
+import { DEFAULT_BLOCK_SIZE } from './Blocks/Block';
 
 let delta = 0;
 let oldTimeStamp = 0;
@@ -310,8 +311,33 @@ window.addEventListener('DOMContentLoaded', () => {
             await blockManager.createBlockAnimationMap()
             blockManager.createBlockTypeMap()
 
-            blockManager.createBlockInstance("grass1", scene, new THREE.Vector3(-150, 0, -1))
-            blockManager.createBlockInstance("grass2", scene, new THREE.Vector3(-150, -50, -1))
+            // Get width of the screen
+            const screenWidth = window.innerWidth
+            // Get height of the screen
+            const screenHeight = window.innerHeight
+            // width of the block (need to get this from the block class)
+            const blockWidth = DEFAULT_BLOCK_SIZE
+
+            // putting block at top left corner (center is 0,0)
+            const topLeftCorner = new THREE.Vector3(
+                -screenWidth / 2 + blockWidth / 2,
+                screenHeight / 2 - blockWidth / 2,
+                -1
+            )
+
+            // fill screen with grass1 and grass2 blocks (alternating)
+            for (let i = 0; i < screenWidth / blockWidth; i++) {
+                for (let j = 0; j < screenHeight / blockWidth; j++) {
+                    if ((i + j) % 2 === 0) {
+                        blockManager.createBlockInstance("grass1", scene, new THREE.Vector3(topLeftCorner.x + i * blockWidth, topLeftCorner.y - j * blockWidth, topLeftCorner.z))
+                    } else {
+                        blockManager.createBlockInstance("grass2", scene, new THREE.Vector3(topLeftCorner.x + i * blockWidth, topLeftCorner.y - j * blockWidth, topLeftCorner.z))
+                    }
+                }
+            }
+
+            // blockManager.createBlockInstance("grass1", scene, topLeftCorner)
+            // blockManager.createBlockInstance("grass2", scene, topLeftCorner.add(new THREE.Vector3(50, 0, 0)))
 
 
             // Your help text and stats code remains the same

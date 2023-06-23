@@ -1,6 +1,7 @@
 import { BlockAnimation } from "../Animation/BlockAnimation";
 import { BlockType } from "./BlockType";
 
+export const DEFAULT_BLOCK_SIZE = 50;
 export class Block {
     // A block will have an BlockAnimation, a BlockType, a BlockTexture and a Textures array
 
