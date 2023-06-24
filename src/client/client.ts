@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import Stats from 'stats.js'
 
 import { characterAnimationData, CharacterAnimation, DIRECTIONS } from './Animation/CharacterAnimation'
-import { Character, createCharacter } from '../models/Character';
+import { Character, DEFAULT_CHARACTER_SIZE, createCharacter } from '../models/Character';
 import { BlockManager } from './Blocks/BlockManager';
 import { BlockType } from './Blocks/BlockType';
 import { DEFAULT_BLOCK_SIZE } from './Blocks/Block';
@@ -48,8 +48,8 @@ function gameLoop(timeStamp) {
     // Calculate how much time has passed
     delta = (timeStamp - oldTimeStamp) / 1000;
 
+    update(delta)
     if (timeStamp < oldTimeStamp + (1000 / maxFPS)) {
-        update(delta)
         window.requestAnimationFrame(gameLoop)
         return;
     }
@@ -84,6 +84,12 @@ const character = {
     textures: [],
     attacking: false,
     slowDownCoefficientOnAttack: 0.1,
+    emptyCollisionPixels: {
+        top: 45,
+        bottom: 11,
+        left: 35,
+        right: 35,
+    },
 } as Character
 
 type timeouttype = ReturnType<typeof setTimeout>
@@ -157,7 +163,50 @@ function isFlipped() {
     return flipped
 }
 
+function collisionDetection(delta) {
+    // check if the character is colliding with any solid blocks
+    for (let i = 0; i < blockManager.solidBlocksInstances.length; i++) {
+        const block = blockManager.solidBlocksInstances[i]
+
+        // check if the character is colliding with the block
+        // Accounts for the player offset from the center of the sprite
+        // and the empty pixels around the sprite
+
+        const characterLeft = character.sprite.position.x - DEFAULT_CHARACTER_SIZE / 2 + character.emptyCollisionPixels.left
+        const characterRight = character.sprite.position.x + DEFAULT_CHARACTER_SIZE / 2 - character.emptyCollisionPixels.right
+        const characterTop = character.sprite.position.y + DEFAULT_CHARACTER_SIZE / 2 - character.emptyCollisionPixels.top
+        const characterBottom = character.sprite.position.y - DEFAULT_CHARACTER_SIZE / 2 + character.emptyCollisionPixels.bottom
+        const blockLeft = block.sprite.position.x - DEFAULT_BLOCK_SIZE / 2
+        const blockRight = block.sprite.position.x + DEFAULT_BLOCK_SIZE / 2
+        const blockTop = block.sprite.position.y + DEFAULT_BLOCK_SIZE / 2
+        const blockBottom = block.sprite.position.y - DEFAULT_BLOCK_SIZE / 2
+
+
+        if (
+            characterLeft < blockRight &&
+            characterRight > blockLeft &&
+            characterTop > blockBottom &&
+            characterBottom < blockTop
+        ) {
+
+            // if the character is colliding with the block, move the character back to where it was before
+            character.sprite.position.x -= character.velocity.x
+            character.sprite.position.y -= character.velocity.y
+
+
+            // // if the character is attacking, destroy the block
+            // if (character.attacking) {
+            //     blockManager.destroyBlock(block)
+            // }
+        }
+    }
+}
+
 function updateCharacter(delta) {
+
+    // check collision
+    collisionDetection(delta);
+
     if (!character.attacking) {
         character.flipped = isFlipped()
 
@@ -335,6 +384,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
+
+            blockManager.createBlockInstance("stone1", scene, new THREE.Vector3(topLeftCorner.x + 2 * blockWidth, topLeftCorner.y - 2 * blockWidth, topLeftCorner.z))
 
             // blockManager.createBlockInstance("grass1", scene, topLeftCorner)
             // blockManager.createBlockInstance("grass2", scene, topLeftCorner.add(new THREE.Vector3(50, 0, 0)))

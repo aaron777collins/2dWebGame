@@ -10,9 +10,13 @@ export class BlockManager {
     blockTypeMap: Map<string, BlockType> = new Map();
     blocks: Block[] = [];
 
+    solidBlocksInstances: Block[] = [];
+    blockInstances: Block[] = [];
+
     createBlock(blockAnimation: BlockAnimation, blockType: BlockType): Block {
         const block = new Block(blockAnimation, blockType);
         this.blocks.push(block);
+
         return block;
     }
 
@@ -38,7 +42,7 @@ export class BlockManager {
         const texture = await loaderPromise;
         // const texture = new THREE.TextureLoader().load("static/blocks.png", (texture) => {
         // create texture atlas grid
-        const textures = createTextureAtlasGrid(texture, 5, 2).reverse()
+        const textures = createTextureAtlasGrid(texture, 5, 3).reverse()
 
         textures.forEach((texture) => {
             // repeat mirror
@@ -53,12 +57,17 @@ export class BlockManager {
         const grass2 = new BlockAnimation(5, 9, 0, 1000, textures)
         this.blockAnimationMap.set("grass2", grass2)
 
+        // stone1
+        const stone1 = new BlockAnimation(10, 14, 0, 1000, textures)
+        this.blockAnimationMap.set("stone1", stone1)
+
 
     }
 
     createBlockTypeMap() {
-        this.blockTypeMap.set("grass1", BlockType.Solid);
-        this.blockTypeMap.set("grass2", BlockType.Solid);
+        this.blockTypeMap.set("grass1", BlockType.NonSolid);
+        this.blockTypeMap.set("grass2", BlockType.NonSolid);
+        this.blockTypeMap.set("stone1", BlockType.Solid);
     }
 
     createBlockInstance(type: string, scene: THREE.Scene, location: THREE.Vector3) {
@@ -78,6 +87,12 @@ export class BlockManager {
         block.setSprite(sprite);
         sprite.position.set(location.x, location.y, location.z);
         scene.add(sprite)
+
+        this.blockInstances.push(block);
+        if (blockType === BlockType.Solid) {
+            this.solidBlocksInstances.push(block);
+        }
+
         return block;
     }
 
