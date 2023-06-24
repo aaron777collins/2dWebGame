@@ -194,10 +194,10 @@ function collisionDetection(delta) {
             character.sprite.position.y -= character.velocity.y
 
 
-            // // if the character is attacking, destroy the block
-            // if (character.attacking) {
-            //     blockManager.destroyBlock(block)
-            // }
+            // if the character is attacking, destroy the block
+            if (character.attacking) {
+                blockManager.destroyBlockInstance(block, scene)
+            }
         }
     }
 }
@@ -385,7 +385,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            blockManager.createBlockInstance("stone1", scene, new THREE.Vector3(topLeftCorner.x + 2 * blockWidth, topLeftCorner.y - 2 * blockWidth, topLeftCorner.z))
+            // thick wall of 5 stone1 blocks near the center (grid aligned)
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 5; j++) {
+                    blockManager.createBlockInstance("stone1", scene, new THREE.Vector3(blockWidth * 5 + topLeftCorner.x + i * blockWidth, -blockWidth * 5 + topLeftCorner.y - j * blockWidth, topLeftCorner.z))
+                }
+            }
 
             // blockManager.createBlockInstance("grass1", scene, topLeftCorner)
             // blockManager.createBlockInstance("grass2", scene, topLeftCorner.add(new THREE.Vector3(50, 0, 0)))

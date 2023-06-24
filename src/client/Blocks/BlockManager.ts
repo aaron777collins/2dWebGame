@@ -96,5 +96,13 @@ export class BlockManager {
         return block;
     }
 
+    destroyBlockInstance(block: Block, scene: THREE.Scene) {
+        scene.remove(block.sprite);
+        this.blockInstances = this.blockInstances.filter((b) => b !== block);
+        if (block.blockType === BlockType.Solid) {
+            this.solidBlocksInstances = this.solidBlocksInstances.filter((b) => b !== block);
+        }
+    }
+
 
 }
